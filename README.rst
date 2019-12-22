@@ -5,6 +5,8 @@
 Briefcase
 =========
 
+image ::
+
 .. image:: https://img.shields.io/pypi/pyversions/briefcase.svg
    :target: https://pypi.python.org/pypi/briefcase
    :alt: Python Versions
