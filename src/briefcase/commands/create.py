@@ -416,7 +416,7 @@ class CreateCommand(BaseCommand):
                 options = ["--upgrade", "--no-user", f"--target={self.app_packages_path(app)}"]
                 if self.platform == "android":
                     pip = [sys.executable, "-m", "androidenv"] + pip
-                    options += ["--no-binary", ":all:"]
+                    options += ["--no-binary", ",".join(app.requires)]
                 self.subprocess.run(
                     pip + ["install"] + options + app.requires,
                     check=True,
