@@ -364,55 +364,41 @@ class CreateCommand(BaseCommand):
             raise InvalidSupportPackage(support_package_url) from e
 
     def include_path(self, app: BaseConfig):
-        """
-        Return the path to Python.h.
-        """
+        """Return the path to Python.h."""
         if self.platform == "android":
             include = os.path.join(self.bundle_path(app), "app", "include")
             for suffix in ["", "m"]:
                 includepy = os.path.join(
                     include,
-                    "python{}{}".format(self.python_version_tag, suffix),
+                    f"python{self.python_version_tag}{suffix}",
                 )
                 if os.path.exists(includepy):
                     return includepy
-            return None
-        else:
-            return None
+        return None
 
     def libpython(self, app: BaseConfig):
-        """
-        Return a tuple of the Python shared library name and its path.
-        """
+        """Return a tuple of the Python shared library name and its path."""
         if self.platform == "android":
             abi = getattr(app, "ABI", "arm64-v8a")
-            # sysconfig.get_config_var("LIBDIR")
             libdir = os.path.join(self.bundle_path(app), "app", "libs", abi)
             if not os.path.exists(libdir):
                 return (None, None)
-            # sysconfig.get_config_var("LDLIBRARY")
             for suffix in ["", "m"]:
-                ldlibrary = 'libpython{}{}.so'.format(
-                    self.python_version_tag,
-                    suffix,
-                )
+                ldlibrary = f"libpython{self.python_version_tag}{suffix}.so"
                 if os.path.exists(os.path.join(libdir, ldlibrary)):
                     return (ldlibrary, libdir)
-            return (None, None)
-        else:
-            return (None, None)
+        return (None, None)
 
     def build_env(self, app: BaseConfig):
-        """
-        Return an environment in which to build the dependencies for the app.
-        This should include the path to Python.h in CPPFLAGS, and libpython
-        and its path in LDFLAGS.
+        """Return an environment in which to build the dependencies for the
+        app. This should include the path to Python.h in CPPFLAGS, and
+        libpython and its path in LDFLAGS.
 
         :param app: The config object for the app
         """
         if self.platform == "android":
             env = dict(self.android_sdk.env)
-            env.update({"ABI": getattr(app, "ABI", "arm64-v8a")})
+            env["ABI"] = getattr(app, "ABI", "arm64-v8a")
         else:
             env = dict(os.environ)
         includepy = self.include_path(app)
@@ -421,15 +407,15 @@ class CreateCommand(BaseCommand):
             cppflags = [
                 "-I{}".format(includepy.replace(" ", "\\ ")),
             ] + cppflags
-            env.update({"CPPFLAGS": " ".join(cppflags)})
+            env["CPPFLAGS"] = " ".join(cppflags)
         ldlibrary, libdir = self.libpython(app)
         if ldlibrary is not None:
             ldflags = env.get("LDFLAGS", "").split(" ")
             ldflags = [
                 "-L{}".format(libdir.replace(" ", "\\ ")),
-                "-l{}".format(re.match(r"lib(.*)[.].*", ldlibrary).group(1)),
+                f'-l{re.match(r"lib(.*)[.].*", ldlibrary).group(1)}',
             ] + ldflags
-            env.update({"LDFLAGS": " ".join(ldflags)})
+            env["LDFLAGS"] = " ".join(ldflags)
         return env
 
     def install_app_dependencies(self, app: BaseConfig):
@@ -458,7 +444,11 @@ class CreateCommand(BaseCommand):
         if app.requires:
             try:
                 pip = [sys.executable, "-m", "pip"]
-                options = ["--upgrade", "--no-user", f"--target={self.app_packages_path(app)}"]
+                options = [
+                    "--upgrade",
+                    "--no-user",
+                    f"--target={self.app_packages_path(app)}",
+                ]
                 if self.platform == "android":
                     pip = [sys.executable, "-m", "androidenv"] + pip
                     options += ["--no-binary", ",".join(app.requires)]
